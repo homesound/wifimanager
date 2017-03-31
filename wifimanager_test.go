@@ -70,6 +70,19 @@ func TestScanForKnownSSID(t *testing.T) {
 	require.Nil(err)
 
 	wm.UpdateKnownSSIDs()
+
+	ifaces, err := wm.GetWifiInterfaces()
+	require.Nil(err)
+
+	isWifiConnected, err := wm.IsWifiConnected()
+	require.Nil(err)
+	if isWifiConnected {
+		for _, iface := range ifaces {
+			ssid, err := wm.CurrentSSID(iface)
+			require.Nil(err)
+			wm.KnownSSIDs.Add(ssid)
+		}
+	}
 	ssids, err := wm.ScanForKnownSSID()
 	require.Nil(err)
 	require.NotNil(ssids)
