@@ -20,7 +20,7 @@ func (wm *WifiManager) StartSmartHotspot(iface string) error {
 		if ssids, err = wm.ScanForKnownSSID(); err != nil {
 			log.Errorf("Failed to scan for known SSIDs: %v", err)
 		} else {
-			log.Infoln("Known SSIDS: %v", ssids)
+			log.Infof("Known SSIDS: %v", ssids)
 			now := time.Now()
 			if len(ssids) > 0 && wm.hostapdCmd != nil {
 				// We found a known SSID and we're in hotspot mode.
