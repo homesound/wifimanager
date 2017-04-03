@@ -1,8 +1,9 @@
 package wifimanager
 
 import (
-	"fmt"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func (wm *WifiManager) StartSmartHotspot(iface string) error {
@@ -16,17 +17,17 @@ func (wm *WifiManager) StartSmartHotspot(iface string) error {
 
 	for {
 		if ssids, err = wm.ScanForKnownSSID(); err != nil {
-			fmt.Errorf("Failed to scan for known SSIDs: %v", err)
+			log.Errorf("Failed to scan for known SSIDs: %v", err)
 		} else {
 			now := time.Now()
 			if len(ssids) > 0 && wm.hostapdCmd != nil {
 				// We found a known SSID and we're in hotspot mode.
 				// Get out of hotspot and start wpa_supplicant
 				if err = wm.StopHotspot(iface); err != nil {
-					fmt.Errorf("Failed to stop hotspot: %v", err)
+					log.Errorf("Failed to stop hotspot: %v", err)
 				} else {
 					if err = wm.StartWpaSupplicant(iface, wm.WPAConfPath); err != nil {
-						fmt.Errorf("Failed to start WPA supplicant: %v", err)
+						log.Errorf("Failed to start WPA supplicant: %v", err)
 					} else {
 						noKnownSSIDTimestamp = time.Now()
 					}
@@ -34,10 +35,10 @@ func (wm *WifiManager) StartSmartHotspot(iface string) error {
 			}
 			if len(ssids) == 0 && now.Sub(noKnownSSIDTimestamp) > 10*time.Second && wm.hostapdCmd == nil {
 				if err = wm.StopWpaSupplicant(iface); err != nil {
-					fmt.Errorf("Failed to stop WPA supplicant: %v", err)
+					log.Errorf("Failed to stop WPA supplicant: %v", err)
 				} else {
 					if err = wm.StartHotspot(iface); err != nil {
-						fmt.Errorf("Failed to start hotspot: %v", err)
+						log.Errorf("Failed to start hotspot: %v", err)
 					}
 				}
 			}
