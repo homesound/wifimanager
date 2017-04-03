@@ -16,24 +16,30 @@ func (wm *WifiManager) StartSmartHotspot(iface string) error {
 	noKnownSSIDTimestamp := time.Now()
 
 	for {
+		log.Debugln("Scanning for known SSIDs...")
 		if ssids, err = wm.ScanForKnownSSID(); err != nil {
 			log.Errorf("Failed to scan for known SSIDs: %v", err)
 		} else {
+			log.Infoln("Known SSIDS: %v", ssids)
 			now := time.Now()
 			if len(ssids) > 0 && wm.hostapdCmd != nil {
 				// We found a known SSID and we're in hotspot mode.
 				// Get out of hotspot and start wpa_supplicant
+				log.Infoln("Found known SSIDs when hotspot is running. Disable hotspot and try to connect to SSID")
 				if err = wm.StopHotspot(iface); err != nil {
 					log.Errorf("Failed to stop hotspot: %v", err)
 				} else {
+					log.Debugln("Hotspot stopped")
 					if err = wm.StartWpaSupplicant(iface, wm.WPAConfPath); err != nil {
 						log.Errorf("Failed to start WPA supplicant: %v", err)
 					} else {
+						log.Debugln("WPA supplicant started")
 						noKnownSSIDTimestamp = time.Now()
 					}
 				}
 			}
 			if len(ssids) == 0 && now.Sub(noKnownSSIDTimestamp) > 10*time.Second && wm.hostapdCmd == nil {
+				log.Infoln("Scanning timed out. Starting hotspot")
 				if err = wm.StopWpaSupplicant(iface); err != nil {
 					log.Errorf("Failed to stop WPA supplicant: %v", err)
 				} else {
