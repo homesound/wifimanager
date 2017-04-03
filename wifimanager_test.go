@@ -87,3 +87,21 @@ func TestScanForKnownSSID(t *testing.T) {
 	require.Nil(err)
 	require.NotNil(ssids)
 }
+
+/*
+func TestConnect(t *testing.T) {
+	require := require.New(t)
+
+	wm, err := NewWifiManager(testConf)
+	require.NotNil(wm)
+	require.Nil(err)
+
+	ifaces, err := wm.GetWifiInterfaces()
+	require.Nil(err)
+
+	iface := ifaces[0]
+
+	err = wm.TestConnect(iface, "club210", "winteriscoming")
+	require.Nil(err)
+}
+*/

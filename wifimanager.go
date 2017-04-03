@@ -2,11 +2,16 @@ package wifimanager
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"os/exec"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/fatih/set"
+	"github.com/google/shlex"
 	"github.com/gurupras/go-easyfiles"
 	"github.com/gurupras/gocommons"
 	"github.com/homesound/go-networkmanager"
@@ -15,20 +20,23 @@ import (
 type WifiManager struct {
 	WPAConfPath string
 	*network_manager.NetworkManager
-	KnownSSIDs set.Interface
+	KnownSSIDs       set.Interface
+	wpaSupplicantCmd *exec.Cmd
+	hostapdCmd       *exec.Cmd
+	dnsmasqCmd       *exec.Cmd
 }
 
 func NewWifiManager(wpaConfPath string) (*WifiManager, error) {
 	if !easyfiles.Exists(wpaConfPath) {
-		return nil, errors.New(fmt.Sprintf("WPA configuration file '%v' does not exist!", wpaConfPath))
+		return nil, fmt.Errorf("WPA configuration file '%v' does not exist!", wpaConfPath)
 	}
-	return &WifiManager{wpaConfPath, &network_manager.NetworkManager{}, set.New()}, nil
+	return &WifiManager{wpaConfPath, &network_manager.NetworkManager{}, set.New(), nil, nil, nil}, nil
 }
 
 func (wm *WifiManager) CurrentSSID(iface string) (string, error) {
 	ret, stdout, stderr := gocommons.Execv1("iwgetid", fmt.Sprintf("-r %v", iface), true)
 	if ret != 0 {
-		return "", errors.New(fmt.Sprintf("Failed to run iwgetid -r: %v", stderr))
+		return "", fmt.Errorf("Failed to run iwgetid -r: %v", stderr)
 	}
 	return strings.TrimSpace(stdout), nil
 }
@@ -63,8 +71,8 @@ func (wm *WifiManager) ScanForKnownSSID() ([]string, error) {
 					continue
 				}
 				scanSet := set.NewNonTS()
-				for _, ssid := range scanResults {
-					scanSet.Add(ssid)
+				for _, entry := range scanResults {
+					scanSet.Add(entry.SSID)
 				}
 				intersection := set.Intersection(wm.KnownSSIDs, scanSet)
 				if intersection.Size() > 0 {
@@ -83,7 +91,7 @@ func (wm *WifiManager) ScanForKnownSSID() ([]string, error) {
 				// No Known wifi SSIDs found.
 				// Did we encounter errors?
 				if errorString.Len() > 0 {
-					return nil, errors.New(errorString.String())
+					return nil, fmt.Errorf(errorString.String())
 				} else {
 					// No errors and no Known SSIDs
 					// legit response.
@@ -92,8 +100,107 @@ func (wm *WifiManager) ScanForKnownSSID() ([]string, error) {
 			}
 		} else {
 			// Did not find any wifi interfaces
-			err = errors.New("No wifi interface found")
+			err = fmt.Errorf("No wifi interface found")
 			return nil, err
 		}
+	}
+}
+
+func (wm *WifiManager) WpaPassphrase(ssid, psk string) (string, error) {
+	cmdlineStr := fmt.Sprintf("/usr/bin/wpa_passphrase %v %v", ssid, psk)
+	cmdline, err := shlex.Split(cmdlineStr)
+	if err != nil {
+		return "", fmt.Errorf("Failed to split commandline '%v': %v", cmdlineStr, err)
+	}
+	ret, stdout, stderr := gocommons.Execv(cmdline[0], cmdline[1:], true)
+	_ = stdout
+	if ret != 0 {
+		return "", fmt.Errorf("Failed to run command '%v': %v", cmdlineStr, stderr)
+	}
+	return strings.TrimSpace(stdout), nil
+}
+
+func (wm *WifiManager) StartWpaSupplicant(iface, confPath string) error {
+	cmdlineStr := fmt.Sprintf("/usr/bin/wpa_supplicant -Dnl80211 -i%v -c%v", iface, confPath)
+	cmdline, err := shlex.Split(cmdlineStr)
+	if err != nil {
+		return fmt.Errorf("Failed to split commandline '%v': %v", cmdlineStr, err)
+	}
+	proc, err := gocommons.ExecvNoWait(cmdline[0], cmdline[1:], true)
+	if err != nil {
+		return err
+	}
+	wm.wpaSupplicantCmd = proc
+	return nil
+}
+
+func (wm *WifiManager) StopWpaSupplicant(iface string) (err error) {
+	if wm.wpaSupplicantCmd != nil {
+		if err = wm.wpaSupplicantCmd.Process.Signal(os.Interrupt); err != nil {
+			return fmt.Errorf("Failed to interrupt wpa_supplicant: %v\n", err)
+		}
+		if err = wm.wpaSupplicantCmd.Wait(); err != nil {
+			return fmt.Errorf("Failed to wait for  wpa_supplicant process to terminate: %v\n", err)
+		}
+		wm.wpaSupplicantCmd = nil
+	}
+	return
+}
+
+func (wm *WifiManager) TestConnect(iface, ssid, password string) error {
+	f, err := ioutil.TempFile("/tmp", "wpa_supplicant-")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(f.Name())
+
+	confStr, err := wm.WpaPassphrase(ssid, password)
+	if err != nil {
+		return err
+	}
+	if err = ioutil.WriteFile(f.Name(), []byte(confStr), 0664); err != nil {
+		return fmt.Errorf("Failed to create a temporary wpa_supllicant .conf file: %v", err)
+	}
+
+	err = wm.StartWpaSupplicant(iface, f.Name())
+	if err != nil {
+		return fmt.Errorf("Failed to start wpa supplicant: %v", err)
+	}
+
+	connected := false
+	mutex := &sync.Mutex{}
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		start := time.Now()
+		for time.Now().Sub(start) < 10*time.Second {
+			if connected, err := wm.IsWifiConnected(); err != nil {
+				fmt.Errorf("Failed to check if wifi is connected: %v", err)
+			} else {
+				if currentSSID, err := wm.CurrentSSID(iface); err != nil {
+					fmt.Errorf("Failed to get current SSID: %v", err)
+				} else {
+					if err != nil && connected && strings.Compare(currentSSID, ssid) == 0 {
+						mutex.Lock()
+						connected = true
+						mutex.Unlock()
+						break
+					}
+					time.Sleep(1 * time.Second)
+				}
+			}
+		}
+	}()
+	wg.Wait()
+
+	if err = wm.StopWpaSupplicant(iface); err != nil {
+		return err
+	}
+
+	if connected {
+		return nil
+	} else {
+		return fmt.Errorf("Failed to connect '%v' to SSID: %v", iface, ssid)
 	}
 }
