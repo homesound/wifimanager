@@ -8,6 +8,7 @@ import (
 	"github.com/google/shlex"
 	"github.com/gurupras/go-easyfiles"
 	"github.com/gurupras/gocommons"
+	log "github.com/sirupsen/logrus"
 )
 
 func (wm *WifiManager) WpaPassphrase(ssid, psk string) (string, error) {
@@ -25,7 +26,7 @@ func (wm *WifiManager) WpaPassphrase(ssid, psk string) (string, error) {
 }
 
 func (wm *WifiManager) StartWpaSupplicant(iface, confPath string) error {
-	cmdlineStr := fmt.Sprintf("/usr/bin/wpa_supplicant -Dnl80211 -i%v -c%v", iface, confPath)
+	cmdlineStr := fmt.Sprintf("/sbin/wpa_supplicant -Dnl80211 -i%v -c%v", iface, confPath)
 	cmdline, err := shlex.Split(cmdlineStr)
 	if err != nil {
 		return fmt.Errorf("Failed to split commandline '%v': %v", cmdlineStr, err)
@@ -44,7 +45,10 @@ func (wm *WifiManager) StopWpaSupplicant(iface string) (err error) {
 			return fmt.Errorf("Failed to interrupt wpa_supplicant: %v\n", err)
 		}
 		if err = wm.wpaSupplicantCmd.Wait(); err != nil {
-			return fmt.Errorf("Failed to wait for  wpa_supplicant process to terminate: %v\n", err)
+			log.Warnf("Failed to wait for  wpa_supplicant process to terminate: %v\n", err)
+			// FIXME
+			wm.wpaSupplicantCmd.Process.Kill()
+			err = nil
 		}
 		wm.wpaSupplicantCmd = nil
 	}

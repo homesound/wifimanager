@@ -62,6 +62,8 @@ func (wm *WifiManager) StopHotspot(iface string) error {
 
 	cmds := []string{
 		fmt.Sprintf("ip link set dev %v down", iface),
+		fmt.Sprintf("ifconfig %v down", iface),
+		fmt.Sprintf("ip addr flush %v", iface),
 		fmt.Sprintf("ifconfig %v up", iface),
 	}
 	for _, cmd := range cmds {

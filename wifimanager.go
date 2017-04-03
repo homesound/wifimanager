@@ -14,6 +14,7 @@ import (
 	"github.com/gurupras/go-easyfiles"
 	"github.com/gurupras/gocommons"
 	"github.com/homesound/go-networkmanager"
+	log "github.com/sirupsen/logrus"
 )
 
 type WifiManager struct {
@@ -33,7 +34,7 @@ func NewWifiManager(wpaConfPath string) (*WifiManager, error) {
 }
 
 func (wm *WifiManager) CurrentSSID(iface string) (string, error) {
-	ret, stdout, stderr := gocommons.Execv1("iwgetid", fmt.Sprintf("-r %v", iface), true)
+	ret, stdout, stderr := gocommons.Execv1("/sbin/iwgetid", fmt.Sprintf("-r %v", iface), true)
 	if ret != 0 {
 		return "", fmt.Errorf("Failed to run iwgetid -r: %v", stderr)
 	}
@@ -120,10 +121,16 @@ func (wm *WifiManager) TestConnect(iface, ssid, password string) error {
 		return fmt.Errorf("Failed to create a temporary wpa_supllicant .conf file: %v", err)
 	}
 
+	// Disable hostapd
+	if err = wm.StopHotspot(iface); err != nil {
+		return fmt.Errorf("Failed to stop hotspot to test connection: %v", err)
+	}
+
 	err = wm.StartWpaSupplicant(iface, f.Name())
 	if err != nil {
 		return fmt.Errorf("Failed to start wpa supplicant: %v", err)
 	}
+	log.Debugln("Started test WPA supplicant")
 
 	connected := false
 	mutex := &sync.Mutex{}
@@ -134,10 +141,10 @@ func (wm *WifiManager) TestConnect(iface, ssid, password string) error {
 		start := time.Now()
 		for time.Now().Sub(start) < 10*time.Second {
 			if connected, err := wm.IsWifiConnected(); err != nil {
-				fmt.Errorf("Failed to check if wifi is connected: %v", err)
+				log.Errorf("Failed to check if wifi is connected: %v", err)
 			} else {
 				if currentSSID, err := wm.CurrentSSID(iface); err != nil {
-					fmt.Errorf("Failed to get current SSID: %v", err)
+					log.Errorf("Failed to get current SSID: %v", err)
 				} else {
 					if err != nil && connected && strings.Compare(currentSSID, ssid) == 0 {
 						mutex.Lock()
@@ -153,7 +160,7 @@ func (wm *WifiManager) TestConnect(iface, ssid, password string) error {
 	wg.Wait()
 
 	if err = wm.StopWpaSupplicant(iface); err != nil {
-		return err
+		return fmt.Errorf("Failed to stop WPA supplicant: %v", err)
 	}
 
 	if connected {
