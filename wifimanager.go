@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/fatih/set"
-	"github.com/google/shlex"
 	"github.com/gurupras/go-easyfiles"
 	"github.com/gurupras/gocommons"
 	"github.com/homesound/go-networkmanager"
@@ -104,47 +103,6 @@ func (wm *WifiManager) ScanForKnownSSID() ([]string, error) {
 			return nil, err
 		}
 	}
-}
-
-func (wm *WifiManager) WpaPassphrase(ssid, psk string) (string, error) {
-	cmdlineStr := fmt.Sprintf("/usr/bin/wpa_passphrase %v %v", ssid, psk)
-	cmdline, err := shlex.Split(cmdlineStr)
-	if err != nil {
-		return "", fmt.Errorf("Failed to split commandline '%v': %v", cmdlineStr, err)
-	}
-	ret, stdout, stderr := gocommons.Execv(cmdline[0], cmdline[1:], true)
-	_ = stdout
-	if ret != 0 {
-		return "", fmt.Errorf("Failed to run command '%v': %v", cmdlineStr, stderr)
-	}
-	return strings.TrimSpace(stdout), nil
-}
-
-func (wm *WifiManager) StartWpaSupplicant(iface, confPath string) error {
-	cmdlineStr := fmt.Sprintf("/usr/bin/wpa_supplicant -Dnl80211 -i%v -c%v", iface, confPath)
-	cmdline, err := shlex.Split(cmdlineStr)
-	if err != nil {
-		return fmt.Errorf("Failed to split commandline '%v': %v", cmdlineStr, err)
-	}
-	proc, err := gocommons.ExecvNoWait(cmdline[0], cmdline[1:], true)
-	if err != nil {
-		return err
-	}
-	wm.wpaSupplicantCmd = proc
-	return nil
-}
-
-func (wm *WifiManager) StopWpaSupplicant(iface string) (err error) {
-	if wm.wpaSupplicantCmd != nil {
-		if err = wm.wpaSupplicantCmd.Process.Signal(os.Interrupt); err != nil {
-			return fmt.Errorf("Failed to interrupt wpa_supplicant: %v\n", err)
-		}
-		if err = wm.wpaSupplicantCmd.Wait(); err != nil {
-			return fmt.Errorf("Failed to wait for  wpa_supplicant process to terminate: %v\n", err)
-		}
-		wm.wpaSupplicantCmd = nil
-	}
-	return
 }
 
 func (wm *WifiManager) TestConnect(iface, ssid, password string) error {
