@@ -15,6 +15,12 @@ func (wm *WifiManager) StartSmartHotspot(iface string) error {
 
 	noKnownSSIDTimestamp := time.Now()
 
+	// Make sure the interface is up
+	err = wm.IfUp(iface)
+	if err != nil {
+		log.Fatalf("Failed to bring wifi interface '%v' up: %v", iface, err)
+	}
+
 	for {
 		log.Debugln("Scanning for known SSIDs...")
 		if ssids, err = wm.ScanForKnownSSID(); err != nil {
