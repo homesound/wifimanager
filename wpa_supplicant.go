@@ -41,14 +41,12 @@ func (wm *WifiManager) StartWpaSupplicant(iface, confPath string) error {
 
 func (wm *WifiManager) StopWpaSupplicant(iface string) (err error) {
 	if wm.wpaSupplicantCmd != nil {
-		if err = wm.wpaSupplicantCmd.Process.Signal(os.Interrupt); err != nil {
+		if err = wm.wpaSupplicantCmd.Process.Kill(); err != nil {
 			return fmt.Errorf("Failed to interrupt wpa_supplicant: %v\n", err)
 		}
-		if err = wm.wpaSupplicantCmd.Wait(); err != nil {
-			log.Warnf("Failed to wait for  wpa_supplicant process to terminate: %v\n", err)
-			// FIXME
-			wm.wpaSupplicantCmd.Process.Kill()
-			err = nil
+		wm.wpaSupplicantCmd.Wait()
+		if !wm.wpaSupplicantCmd.ProcessState.Exited() {
+			log.Warnf("Failed to wait for wpa_supplicant process to terminate")
 		}
 		wm.wpaSupplicantCmd = nil
 	}
