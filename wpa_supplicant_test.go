@@ -12,6 +12,58 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func createTestConf(require *require.Assertions, wm *WifiManager) string {
+	path := "/tmp/test-start-wpa_supplicant.conf"
+
+	network, err := wm.WpaPassphrase("club210", "winteriscoming")
+	require.Nil(err)
+
+	err = ioutil.WriteFile(path, []byte(network), 0664)
+	require.Nil(err)
+
+	return path
+}
+
+func TestWPAConfAppend(t *testing.T) {
+	require := require.New(t)
+
+	testConf := "/tmp/test-wpa-parse.conf"
+	// Now append more wifi networks
+	f, err := os.OpenFile(testConf, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0664)
+	require.Nil(err)
+	defer os.Remove(f.Name())
+
+	wm, err := NewWifiManager(testConf)
+	require.Nil(err)
+	require.NotNil(wm)
+
+	ssids := []string{"network-1", "network-2", "network-3"}
+	passwords := []string{"password-1", "password-2", "password-3"}
+	ssidPskMap := make(map[string]string)
+
+	for idx, ssid := range ssids {
+		password := passwords[idx]
+		n, err := wm.WpaPassphrase(ssid, password)
+		require.Nil(err)
+		wn := ParseWPANetwork(n)
+		require.NotNil(wn)
+		psk := wn.PSK
+		ssidPskMap[ssid] = psk
+		wm.AddNetworkConf(ssid, password)
+	}
+
+	networks, err := ParseWPASupplicantConf(testConf)
+	require.Nil(err)
+
+	for _, network := range networks {
+		ssid := network.SSID
+		psk := network.PSK
+		_, ok := ssidPskMap[ssid]
+		require.True(ok)
+		require.Equal(ssidPskMap[ssid], psk)
+	}
+}
+
 func TestStartWPASupplicant(t *testing.T) {
 	require := require.New(t)
 
@@ -19,14 +71,10 @@ func TestStartWPASupplicant(t *testing.T) {
 	require.Nil(err)
 	require.NotNil(wm)
 
-	network, err := wm.WpaPassphrase("club210", "winteriscoming")
-	require.Nil(err)
+	testConf := createTestConf(require, wm)
+	defer os.Remove(testConf)
 
-	err = ioutil.WriteFile("/tmp/test-start-wpa_supplicant.conf", []byte(network), 0664)
-	require.Nil(err)
-	defer os.Remove("/tmp/test-start-wpa_supplicant.conf")
-
-	err = wm.StartWpaSupplicant("wlan0", "/tmp/test-start-wpa_supplicant.conf")
+	err = wm.StartWpaSupplicant("wlan0", testConf)
 	require.Nil(err)
 
 	connected := false
@@ -61,14 +109,10 @@ func TestStopWPASupplicant(t *testing.T) {
 	require.Nil(err)
 	require.NotNil(wm)
 
-	network, err := wm.WpaPassphrase("club210", "winteriscoming")
-	require.Nil(err)
+	testConf := createTestConf(require, wm)
+	defer os.Remove(testConf)
 
-	err = ioutil.WriteFile("/tmp/test-start-wpa_supplicant.conf", []byte(network), 0664)
-	require.Nil(err)
-	defer os.Remove("/tmp/test-start-wpa_supplicant.conf")
-
-	err = wm.StartWpaSupplicant("wlan0", "/tmp/test-start-wpa_supplicant.conf")
+	err = wm.StartWpaSupplicant("wlan0", testConf)
 	require.Nil(err)
 	err = wm.StopWpaSupplicant("wlan0")
 	require.Nil(err)
@@ -87,14 +131,10 @@ func TestCurrentSSID(t *testing.T) {
 	require.Nil(err)
 	require.NotNil(wm)
 
-	network, err := wm.WpaPassphrase("club210", "winteriscoming")
-	require.Nil(err)
+	testConf := createTestConf(require, wm)
+	defer os.Remove(testConf)
 
-	err = ioutil.WriteFile("/tmp/test-start-wpa_supplicant.conf", []byte(network), 0664)
-	require.Nil(err)
-	defer os.Remove("/tmp/test-start-wpa_supplicant.conf")
-
-	err = wm.StartWpaSupplicant("wlan0", "/tmp/test-start-wpa_supplicant.conf")
+	err = wm.StartWpaSupplicant("wlan0", testConf)
 	require.Nil(err)
 
 	ssid := ""

@@ -39,14 +39,14 @@ func test(require *require.Assertions, networks []*WPANetwork, err error) {
 	require.Equal("pw-2", networks[1].PSK)
 }
 
-func TestParseConf(t *testing.T) {
+func TestWPAConfParse(t *testing.T) {
 	require := require.New(t)
 
 	networks, err := parseConf(wpaConfParserTestData)
 	test(require, networks, err)
 }
 
-func TestParseWPASupplicantConf(t *testing.T) {
+func TestWPAConfParseFromFile(t *testing.T) {
 	require := require.New(t)
 
 	filename := "test-conf.txt"
