@@ -67,7 +67,7 @@ func (wm *WifiManager) ResetWifiInterface(iface string) error {
 }
 
 func (wm *WifiManager) UpdateKnownSSIDs() error {
-	wpaNetworks, err := network_manager.ParseWPASupplicantConf(wm.WPAConfPath)
+	wpaNetworks, err := ParseWPASupplicantConf(wm.WPAConfPath)
 	if err != nil {
 		return err
 	}

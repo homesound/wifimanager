@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var data = `
+var wifiManagerTestData = `
 network={
 	ssid="ssid-1"
 	psk=pw-1
@@ -32,7 +32,7 @@ func TestConstructor(t *testing.T) {
 
 	// Now succeed
 	testConf := "test-conf.txt"
-	err = ioutil.WriteFile(testConf, []byte(data), 0664)
+	err = ioutil.WriteFile(testConf, []byte(wifiManagerTestData), 0664)
 	require.Nil(err)
 	defer os.Remove(testConf)
 
@@ -45,7 +45,7 @@ func TestUpdateKnownSSIDs(t *testing.T) {
 	require := require.New(t)
 
 	testConf := "test-conf.txt"
-	err := ioutil.WriteFile(testConf, []byte(data), 0664)
+	err := ioutil.WriteFile(testConf, []byte(wifiManagerTestData), 0664)
 	require.Nil(err)
 	defer os.Remove(testConf)
 
@@ -61,7 +61,7 @@ func TestScanForKnownSSID(t *testing.T) {
 	require := require.New(t)
 
 	testConf := "test-conf.txt"
-	err := ioutil.WriteFile(testConf, []byte(data), 0664)
+	err := ioutil.WriteFile(testConf, []byte(wifiManagerTestData), 0664)
 	require.Nil(err)
 	defer os.Remove(testConf)
 
