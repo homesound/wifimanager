@@ -88,7 +88,7 @@ func (wm *WifiManager) AddNetworkConf(ssid, password string) error {
 	if err != nil {
 		return err
 	}
-	if _, err = writer.Write([]byte(data)); err != nil {
+	if _, err = writer.Write([]byte("\n" + data + "\n")); err != nil {
 		return fmt.Errorf("Failed to update WPA conf file: %v", err)
 	}
 	return nil
