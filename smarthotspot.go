@@ -22,6 +22,7 @@ func (wm *WifiManager) StartSmartHotspot(iface string) error {
 	}
 
 	for {
+		wm.Lock()
 		log.Debugln("Scanning for known SSIDs...")
 		if ssids, err = wm.ScanForKnownSSID(); err != nil {
 			log.Errorf("Failed to scan for known SSIDs: %v", err)
@@ -55,6 +56,7 @@ func (wm *WifiManager) StartSmartHotspot(iface string) error {
 				}
 			}
 		}
+		wm.Unlock()
 		time.Sleep(3 * time.Second)
 	}
 }

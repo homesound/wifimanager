@@ -24,13 +24,18 @@ type WifiManager struct {
 	wpaSupplicantCmd *exec.Cmd
 	hostapdCmd       *exec.Cmd
 	dnsmasqCmd       *exec.Cmd
+	sync.Mutex
 }
 
 func NewWifiManager(wpaConfPath string) (*WifiManager, error) {
 	if !easyfiles.Exists(wpaConfPath) {
 		return nil, fmt.Errorf("WPA configuration file '%v' does not exist!", wpaConfPath)
 	}
-	return &WifiManager{wpaConfPath, &network_manager.NetworkManager{}, set.New(), nil, nil, nil}, nil
+	wm := &WifiManager{}
+	wm.WPAConfPath = wpaConfPath
+	wm.NetworkManager = &network_manager.NetworkManager{}
+	wm.KnownSSIDs = set.New()
+	return wm, nil
 }
 
 func (wm *WifiManager) CurrentSSID(iface string) (string, error) {
@@ -121,6 +126,9 @@ func (wm *WifiManager) TestConnect(iface, ssid, password string) error {
 		return fmt.Errorf("Failed to create a temporary wpa_supllicant .conf file: %v", err)
 	}
 
+	wm.Lock()
+	defer wm.Unlock()
+
 	// Disable hostapd
 	if err = wm.StopHotspot(iface); err != nil {
 		return fmt.Errorf("Failed to stop hotspot to test connection: %v", err)
@@ -133,28 +141,23 @@ func (wm *WifiManager) TestConnect(iface, ssid, password string) error {
 	log.Debugln("Started test WPA supplicant")
 
 	connected := false
-	mutex := &sync.Mutex{}
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		start := time.Now()
 		for time.Now().Sub(start) < 10*time.Second {
-			if connected, err := wm.IsWifiConnected(); err != nil {
-				log.Errorf("Failed to check if wifi is connected: %v", err)
+			if currentSSID, err := wm.CurrentSSID(iface); err != nil {
+				log.Errorf("Failed to get current SSID: %v", err)
 			} else {
-				if currentSSID, err := wm.CurrentSSID(iface); err != nil {
-					log.Errorf("Failed to get current SSID: %v", err)
+				if err == nil && strings.Compare(currentSSID, ssid) == 0 {
+					connected = true
+					break
 				} else {
-					if err != nil && connected && strings.Compare(currentSSID, ssid) == 0 {
-						mutex.Lock()
-						connected = true
-						mutex.Unlock()
-						break
-					}
-					time.Sleep(1 * time.Second)
+					log.Warnf("SSID mismatch! expected=%v got=%v", ssid, currentSSID)
 				}
 			}
+			time.Sleep(1 * time.Second)
 		}
 	}()
 	wg.Wait()

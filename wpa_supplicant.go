@@ -36,6 +36,19 @@ func (wm *WifiManager) StartWpaSupplicant(iface, confPath string) error {
 		return err
 	}
 	wm.wpaSupplicantCmd = proc
+	/*
+		go func() {
+			reader, err := wm.wpaSupplicantCmd.StdoutPipe()
+			if err != nil {
+				log.Warnf("Failed to get wpa supplicant stdout: %v", err)
+				return
+			}
+			scanner := bufio.NewScanner(reader)
+			for scanner.Scan() {
+				log.Infof("WPA_SUPPLICANT: %v", scanner.Text())
+			}
+		}()
+	*/
 	return nil
 }
 
