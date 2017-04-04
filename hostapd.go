@@ -11,23 +11,10 @@ import (
 func (wm *WifiManager) StartHotspot(iface string) error {
 	wm.StopWpaSupplicant(iface)
 
-	cmds := []string{
-		fmt.Sprintf("ip link set dev %v down", iface),
-		fmt.Sprintf("ip a add 192.168.1.1/24 dev %v", iface),
-		fmt.Sprintf("ip link set dev %v up", iface),
+	err := wm.ResetWifiInterface(iface)
+	if err != nil {
+		return fmt.Errorf("Failed to reset wifi interface: %v", err)
 	}
-	for _, cmd := range cmds {
-		cmdline, err := shlex.Split(cmd)
-		if err != nil {
-			return fmt.Errorf("Failed to run command '%v': %v", cmd, err)
-		}
-		ret, stdout, stderr := gocommons.Execv(cmdline[0], cmdline[1:], true)
-		_ = stdout
-		if ret != 0 {
-			return fmt.Errorf("Failed to run command '%v': %v", cmd, stderr)
-		}
-	}
-
 	// Now that the interface is set up, run hostapd and dnsmasq
 	hostapdCmdline, err := shlex.Split("/usr/sbin/hostapd /etc/hostapd/hostapd.conf")
 	if err != nil {
@@ -60,24 +47,8 @@ func (wm *WifiManager) StopHotspot(iface string) error {
 	wm.hostapdCmd.Wait()
 	wm.dnsmasqCmd.Wait()
 
-	cmds := []string{
-		fmt.Sprintf("ip link set dev %v down", iface),
-		fmt.Sprintf("ifconfig %v down", iface),
-		fmt.Sprintf("ip addr flush %v", iface),
-	}
-	for _, cmd := range cmds {
-		cmdline, err := shlex.Split(cmd)
-		if err != nil {
-			return fmt.Errorf("Failed to run command '%v': %v", cmd, err)
-		}
-		ret, stdout, stderr := gocommons.Execv(cmdline[0], cmdline[1:], true)
-		_ = stdout
-		if ret != 0 {
-			return fmt.Errorf("Failed to run command '%v': %v", cmd, stderr)
-		}
-	}
-
 	wm.hostapdCmd = nil
 	wm.dnsmasqCmd = nil
+
 	return nil
 }

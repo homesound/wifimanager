@@ -26,6 +26,11 @@ func (wm *WifiManager) WpaPassphrase(ssid, psk string) (string, error) {
 }
 
 func (wm *WifiManager) StartWpaSupplicant(iface, confPath string) error {
+	err := wm.ResetWifiInterface(iface)
+	if err != nil {
+		return fmt.Errorf("Failed to reset wifi interface: %v", err)
+	}
+
 	cmdlineStr := fmt.Sprintf("/sbin/wpa_supplicant -Dnl80211 -i%v -c%v", iface, confPath)
 	cmdline, err := shlex.Split(cmdlineStr)
 	if err != nil {

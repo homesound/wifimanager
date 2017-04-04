@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/fatih/set"
+	"github.com/google/shlex"
 	"github.com/gurupras/go-easyfiles"
 	"github.com/gurupras/gocommons"
 	"github.com/homesound/go-networkmanager"
@@ -44,6 +45,25 @@ func (wm *WifiManager) CurrentSSID(iface string) (string, error) {
 		return "", fmt.Errorf("Failed to run iwgetid -r: %v", stderr)
 	}
 	return strings.TrimSpace(stdout), nil
+}
+
+func (wm *WifiManager) ResetWifiInterface(iface string) error {
+	cmds := []string{
+		fmt.Sprintf("ifconfig %v down", iface),
+		fmt.Sprintf("ip addr flush %v", iface),
+	}
+	for _, cmd := range cmds {
+		cmdline, err := shlex.Split(cmd)
+		if err != nil {
+			return fmt.Errorf("Failed to run command '%v': %v", cmd, err)
+		}
+		ret, stdout, stderr := gocommons.Execv(cmdline[0], cmdline[1:], true)
+		_ = stdout
+		if ret != 0 {
+			return fmt.Errorf("Failed to run command '%v': %v", cmd, stderr)
+		}
+	}
+	return nil
 }
 
 func (wm *WifiManager) UpdateKnownSSIDs() error {
