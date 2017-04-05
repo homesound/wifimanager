@@ -32,28 +32,8 @@ func (wm *WifiManager) StartWpaSupplicant(iface, confPath string) error {
 	}
 
 	cmdlineStr := fmt.Sprintf("/sbin/wpa_supplicant -Dnl80211 -i%v -c%v", iface, confPath)
-	cmdline, err := shlex.Split(cmdlineStr)
-	if err != nil {
-		return fmt.Errorf("Failed to split commandline '%v': %v", cmdlineStr, err)
-	}
-	proc, err := gocommons.ExecvNoWait(cmdline[0], cmdline[1:], true)
-	if err != nil {
-		return err
-	}
-	wm.wpaSupplicantCmd = proc
-	/*
-		go func() {
-			reader, err := wm.wpaSupplicantCmd.StdoutPipe()
-			if err != nil {
-				log.Warnf("Failed to get wpa supplicant stdout: %v", err)
-				return
-			}
-			scanner := bufio.NewScanner(reader)
-			for scanner.Scan() {
-				log.Infof("WPA_SUPPLICANT: %v", scanner.Text())
-			}
-		}()
-	*/
+	wm.wpaSupplicantCmd = wrapCmd(cmdlineStr, "wpa_supplicant")
+	wm.wpaSupplicantCmd.Start()
 	return nil
 }
 

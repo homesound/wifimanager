@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/fatih/set"
-	"github.com/google/shlex"
 	"github.com/gurupras/go-easyfiles"
+	simpleexec "github.com/gurupras/go-simpleexec"
 	"github.com/gurupras/gocommons"
 	"github.com/homesound/go-networkmanager"
 	log "github.com/sirupsen/logrus"
@@ -22,9 +21,9 @@ type WifiManager struct {
 	WPAConfPath string
 	*network_manager.NetworkManager
 	KnownSSIDs       set.Interface
-	wpaSupplicantCmd *exec.Cmd
-	hostapdCmd       *exec.Cmd
-	dnsmasqCmd       *exec.Cmd
+	wpaSupplicantCmd *simpleexec.Cmd
+	hostapdCmd       *simpleexec.Cmd
+	dnsmasqCmd       *simpleexec.Cmd
 	sync.Mutex
 }
 
@@ -51,16 +50,11 @@ func (wm *WifiManager) ResetWifiInterface(iface string) error {
 	cmds := []string{
 		fmt.Sprintf("ifconfig %v down", iface),
 		fmt.Sprintf("ip addr flush %v", iface),
+		fmt.Sprintf("ifconfig %v up", iface),
 	}
 	for _, cmd := range cmds {
-		cmdline, err := shlex.Split(cmd)
-		if err != nil {
-			return fmt.Errorf("Failed to run command '%v': %v", cmd, err)
-		}
-		ret, stdout, stderr := gocommons.Execv(cmdline[0], cmdline[1:], true)
-		_ = stdout
-		if ret != 0 {
-			return fmt.Errorf("Failed to run command '%v': %v", cmd, stderr)
+		if err := runCmd(cmd); err != nil {
+			return fmt.Errorf("Failed to reset wifi interface: %v", err)
 		}
 	}
 	return nil

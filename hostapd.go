@@ -3,9 +3,6 @@ package wifimanager
 import (
 	"fmt"
 	"os"
-
-	"github.com/google/shlex"
-	"github.com/gurupras/gocommons"
 )
 
 func (wm *WifiManager) StartHotspot(iface string) error {
@@ -15,24 +12,26 @@ func (wm *WifiManager) StartHotspot(iface string) error {
 	if err != nil {
 		return fmt.Errorf("Failed to reset wifi interface: %v", err)
 	}
-	// Now that the interface is set up, run hostapd and dnsmasq
-	hostapdCmdline, err := shlex.Split("/usr/sbin/hostapd /etc/hostapd/hostapd.conf")
-	if err != nil {
-		return err
-	}
-	wm.hostapdCmd, err = gocommons.ExecvNoWait(hostapdCmdline[0], hostapdCmdline[1:], true)
-	if err != nil {
-		return err
+
+	if err = runCmd(fmt.Sprintf("ifconfig %s up 192.168.1.1 netmask 255.255.255.0", iface)); err != nil {
+		return fmt.Errorf("StartHotspot: Failed to bring up wifi interface")
 	}
 
-	dnsmasqCmdline, err := shlex.Split("/usr/sbin/dnsmasq -C /etc/dnsmasq.conf")
-	if err != nil {
-		return err
+	// Now that the interface is set up, run hostapd and dnsmasq
+	hostapdCmdline := "/usr/sbin/hostapd /etc/hostapd/hostapd.conf"
+	wm.hostapdCmd = wrapCmd(hostapdCmdline, "hostapd")
+	if wm.hostapdCmd == nil {
+		return fmt.Errorf("Failed to create hostapdCmd")
 	}
-	wm.dnsmasqCmd, err = gocommons.ExecvNoWait(dnsmasqCmdline[0], dnsmasqCmdline[1:], true)
-	if err != nil {
-		return err
+	wm.hostapdCmd.Start()
+
+	dnsmasqCmdline := "/usr/sbin/dnsmasq -C /etc/dnsmasq.conf"
+	wm.dnsmasqCmd = wrapCmd(dnsmasqCmdline, "dnsmasq")
+	if wm.dnsmasqCmd == nil {
+		return fmt.Errorf("Failed to create dnsmasqCmd")
 	}
+	wm.dnsmasqCmd.Start()
+
 	return nil
 }
 
