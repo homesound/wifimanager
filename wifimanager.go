@@ -125,17 +125,14 @@ func (wm *WifiManager) ScanForKnownSSID() ([]string, error) {
 	}
 }
 
-func (wm *WifiManager) TestConnect(iface, ssid, password string) error {
+func (wm *WifiManager) TestConnect(iface string, network *WPANetwork) error {
 	f, err := ioutil.TempFile("/tmp", "wpa_supplicant-")
 	if err != nil {
 		return err
 	}
 	defer os.Remove(f.Name())
 
-	confStr, err := wm.WpaPassphrase(ssid, password)
-	if err != nil {
-		return err
-	}
+	confStr := network.AsConf()
 	if err = ioutil.WriteFile(f.Name(), []byte(confStr), 0664); err != nil {
 		return fmt.Errorf("Failed to create a temporary wpa_supllicant .conf file: %v", err)
 	}
@@ -148,7 +145,7 @@ func (wm *WifiManager) TestConnect(iface, ssid, password string) error {
 		return fmt.Errorf("Failed to stop hotspot to test connection: %v", err)
 	}
 
-	err = wm.StartWpaSupplicant(iface, f.Name())
+	err = wm.StartWPASupplicant(iface, f.Name())
 	if err != nil {
 		return fmt.Errorf("Failed to start wpa supplicant: %v", err)
 	}
@@ -164,11 +161,11 @@ func (wm *WifiManager) TestConnect(iface, ssid, password string) error {
 			if currentSSID, err := wm.CurrentSSID(iface); err != nil {
 				log.Errorf("Failed to get current SSID: %v", err)
 			} else {
-				if err == nil && strings.Compare(currentSSID, ssid) == 0 {
+				if err == nil && strings.Compare(currentSSID, network.SSID) == 0 {
 					connected = true
 					break
 				} else {
-					log.Warnf("SSID mismatch! expected=%v got=%v", ssid, currentSSID)
+					log.Warnf("SSID mismatch! expected=%v got=%v", network.SSID, currentSSID)
 				}
 			}
 			time.Sleep(1 * time.Second)
@@ -176,13 +173,13 @@ func (wm *WifiManager) TestConnect(iface, ssid, password string) error {
 	}()
 	wg.Wait()
 
-	if err = wm.StopWpaSupplicant(iface); err != nil {
+	if err = wm.StopWPASupplicant(iface); err != nil {
 		return fmt.Errorf("Failed to stop WPA supplicant: %v", err)
 	}
 
 	if connected {
 		return nil
 	} else {
-		return fmt.Errorf("Failed to connect '%v' to SSID: %v", iface, ssid)
+		return fmt.Errorf("Failed to connect '%v' to SSID: %v", iface, network.SSID)
 	}
 }

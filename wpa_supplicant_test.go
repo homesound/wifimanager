@@ -46,7 +46,7 @@ func TestWPAConfAppend(t *testing.T) {
 
 	for idx, ssid := range ssids {
 		password := passwords[idx]
-		n, err := wm.WpaPassphrase(ssid, password)
+		n, err := WPAPassphrase(ssid, password)
 		require.Nil(err)
 		wn := ParseWPANetwork(n)
 		require.NotNil(wn)
@@ -77,7 +77,7 @@ func TestStartWPASupplicant(t *testing.T) {
 	testConf := createTestConf(require, wm)
 	defer os.Remove(testConf)
 
-	err = wm.StartWpaSupplicant("wlan0", testConf)
+	err = wm.StartWPASupplicant("wlan0", testConf)
 	require.Nil(err)
 
 	connected := false
@@ -98,7 +98,7 @@ func TestStartWPASupplicant(t *testing.T) {
 	wg.Wait()
 	require.True(connected, "Failed to connect to wifi")
 
-	err = wm.StopWpaSupplicant("wlan0")
+	err = wm.StopWPASupplicant("wlan0")
 	require.Nil(err)
 }
 
@@ -116,9 +116,9 @@ func TestStopWPASupplicant(t *testing.T) {
 	testConf := createTestConf(require, wm)
 	defer os.Remove(testConf)
 
-	err = wm.StartWpaSupplicant("wlan0", testConf)
+	err = wm.StartWPASupplicant("wlan0", testConf)
 	require.Nil(err)
-	err = wm.StopWpaSupplicant("wlan0")
+	err = wm.StopWPASupplicant("wlan0")
 	require.Nil(err)
 
 	time.Sleep(1 * time.Second)
@@ -145,7 +145,7 @@ func TestCurrentSSID(t *testing.T) {
 	}
 	log.Infoln("Known SSIDS:", ssidSet)
 
-	err = wm.StartWpaSupplicant("wlan0", testConf)
+	err = wm.StartWPASupplicant("wlan0", testConf)
 	require.Nil(err)
 
 	ssid := ""
@@ -162,7 +162,7 @@ func TestCurrentSSID(t *testing.T) {
 			}
 			time.Sleep(100 * time.Millisecond)
 		}
-		err = wm.StopWpaSupplicant("wlan0")
+		err = wm.StopWPASupplicant("wlan0")
 		require.Nil(err)
 	}()
 	wg.Wait()

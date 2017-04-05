@@ -37,7 +37,7 @@ func (wm *WifiManager) StartSmartHotspot(iface string) error {
 					log.Errorf("Failed to stop hotspot: %v", err)
 				} else {
 					log.Debugln("Hotspot stopped")
-					if err = wm.StartWpaSupplicant(iface, wm.WPAConfPath); err != nil {
+					if err = wm.StartWPASupplicant(iface, wm.WPAConfPath); err != nil {
 						log.Errorf("Failed to start WPA supplicant: %v", err)
 					} else {
 						log.Debugln("WPA supplicant started")
@@ -47,7 +47,7 @@ func (wm *WifiManager) StartSmartHotspot(iface string) error {
 			}
 			if len(ssids) == 0 && now.Sub(noKnownSSIDTimestamp) > 10*time.Second && wm.hostapdCmd == nil {
 				log.Infoln("Scanning timed out. Starting hotspot")
-				if err = wm.StopWpaSupplicant(iface); err != nil {
+				if err = wm.StopWPASupplicant(iface); err != nil {
 					log.Errorf("Failed to stop WPA supplicant: %v", err)
 				} else {
 					if err = wm.StartHotspot(iface); err != nil {

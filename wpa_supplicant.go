@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (wm *WifiManager) WpaPassphrase(ssid, psk string) (string, error) {
+func WPAPassphrase(ssid, psk string) (string, error) {
 	cmdlineStr := fmt.Sprintf("/usr/bin/wpa_passphrase %v %v", ssid, psk)
 	cmdline, err := shlex.Split(cmdlineStr)
 	if err != nil {
@@ -25,7 +25,7 @@ func (wm *WifiManager) WpaPassphrase(ssid, psk string) (string, error) {
 	return strings.TrimSpace(stdout), nil
 }
 
-func (wm *WifiManager) StartWpaSupplicant(iface, confPath string) error {
+func (wm *WifiManager) StartWPASupplicant(iface, confPath string) error {
 	err := wm.ResetWifiInterface(iface)
 	if err != nil {
 		return fmt.Errorf("Failed to reset wifi interface: %v", err)
@@ -37,7 +37,7 @@ func (wm *WifiManager) StartWpaSupplicant(iface, confPath string) error {
 	return nil
 }
 
-func (wm *WifiManager) StopWpaSupplicant(iface string) (err error) {
+func (wm *WifiManager) StopWPASupplicant(iface string) (err error) {
 	if wm.wpaSupplicantCmd != nil {
 		if err = wm.wpaSupplicantCmd.Process.Kill(); err != nil {
 			return fmt.Errorf("Failed to interrupt wpa_supplicant: %v\n", err)
@@ -69,7 +69,7 @@ func (wm *WifiManager) AddNetworkConf(ssid, password string) error {
 	defer writer.Close()
 	defer writer.Flush()
 
-	data, err := wm.WpaPassphrase(ssid, password)
+	data, err := WPAPassphrase(ssid, password)
 	if err != nil {
 		return err
 	}

@@ -6,7 +6,7 @@ import (
 )
 
 func (wm *WifiManager) StartHotspot(iface string) error {
-	wm.StopWpaSupplicant(iface)
+	wm.StopWPASupplicant(iface)
 
 	err := wm.ResetWifiInterface(iface)
 	if err != nil {

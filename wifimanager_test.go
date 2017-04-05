@@ -59,11 +59,11 @@ func TestScanForKnownSSID(t *testing.T) {
 	require.NotNil(ssids)
 }
 
-/*
 func TestConnect(t *testing.T) {
 	require := require.New(t)
 
-	wm, err := NewWifiManager(testConf)
+	confFile := "test/available-ssid.conf"
+	wm, err := NewWifiManager(confFile)
 	require.NotNil(wm)
 	require.Nil(err)
 
@@ -72,7 +72,12 @@ func TestConnect(t *testing.T) {
 
 	iface := ifaces[0]
 
-	err = wm.TestConnect(iface, "club210", "winteriscoming")
+	networks, err := ParseWPASupplicantConf(confFile)
+	require.Nil(err)
+	require.NotNil(networks)
+
+	for _, network := range networks {
+		err = wm.TestConnect(iface, "club210", "winteriscoming")
+	}
 	require.Nil(err)
 }
-*/

@@ -21,6 +21,14 @@ func (wn *WPANetwork) String() string {
 	return fmt.Sprintf("(ssid=%v psk=%v)", wn.SSID, wn.PSK)
 }
 
+func (wn *WPANetwork) AsConf() string {
+	return fmt.Sprintf(`
+network={
+	ssid="%v"
+	psk=%v
+}`, wn.SSID, wn.PSK)
+}
+
 func ParseWPANetwork(s string) *WPANetwork {
 	lines := strings.Split(s, "\n")
 	var (
