@@ -162,6 +162,7 @@ func (wm *WifiManager) TestConnect(iface string, network *WPANetwork) error {
 				log.Errorf("Failed to get current SSID: %v", err)
 			} else {
 				if err == nil && strings.Compare(currentSSID, network.SSID) == 0 {
+					log.Infof("Found and connected to network! SSID=%v", currentSSID)
 					connected = true
 					break
 				} else {
