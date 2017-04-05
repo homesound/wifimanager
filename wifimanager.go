@@ -184,3 +184,11 @@ func (wm *WifiManager) TestConnect(iface string, network *WPANetwork) error {
 		return fmt.Errorf("Failed to connect '%v' to SSID: %v", iface, network.SSID)
 	}
 }
+
+func (wm *WifiManager) IsHostapdRunning() bool {
+	return wm.hostapdCmd != nil || wm.dnsmasqCmd != nil
+}
+
+func (wm *WifiManager) IsWPASupplicantRunning() bool {
+	return wm.wpaSupplicantCmd != nil
+}
