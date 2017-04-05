@@ -1,12 +1,13 @@
-package wifimanager
+package smarthotspot
 
 import (
 	"time"
 
+	"github.com/homesound/wifimanager"
 	log "github.com/sirupsen/logrus"
 )
 
-func (wm *WifiManager) StartSmartHotspot(iface string) error {
+func StartSmartHotspot(wm *wifimanager.WifiManager, iface string) error {
 	// Test for wifi connection. If no wifi connection is available for
 	// more than 10 seconds, then turn on the hotspot and wait until a
 	// connection is available.
@@ -29,7 +30,7 @@ func (wm *WifiManager) StartSmartHotspot(iface string) error {
 		} else {
 			log.Infof("Known SSIDS: %v", ssids)
 			now := time.Now()
-			if len(ssids) > 0 && wm.hostapdCmd != nil {
+			if len(ssids) > 0 && wm.IsHostapdRunning() {
 				// We found a known SSID and we're in hotspot mode.
 				// Get out of hotspot and start wpa_supplicant
 				log.Infoln("Found known SSIDs when hotspot is running. Disable hotspot and try to connect to SSID")
@@ -45,7 +46,7 @@ func (wm *WifiManager) StartSmartHotspot(iface string) error {
 					}
 				}
 			}
-			if len(ssids) == 0 && now.Sub(noKnownSSIDTimestamp) > 10*time.Second && wm.hostapdCmd == nil {
+			if len(ssids) == 0 && now.Sub(noKnownSSIDTimestamp) > 10*time.Second && !wm.IsHostapdRunning() {
 				log.Infoln("Scanning timed out. Starting hotspot")
 				if err = wm.StopWPASupplicant(iface); err != nil {
 					log.Errorf("Failed to stop WPA supplicant: %v", err)
