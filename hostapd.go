@@ -13,7 +13,7 @@ func (wm *WifiManager) StartHotspot(iface string) error {
 		return fmt.Errorf("Failed to reset wifi interface: %v", err)
 	}
 
-	if err = runCmd(fmt.Sprintf("ifconfig %s up 192.168.1.1 netmask 255.255.255.0", iface)); err != nil {
+	if err = runCmd(fmt.Sprintf("ifconfig %s up 192.168.56.1 netmask 255.255.255.0", iface)); err != nil {
 		return fmt.Errorf("StartHotspot: Failed to bring up wifi interface")
 	}
 
