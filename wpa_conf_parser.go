@@ -10,11 +10,13 @@ import (
 // Regex testing was done on: https://regex101.com/r/RZzdwY/1
 var networkRegex = regexp.MustCompile("(?s)network={(?P<network>.*?)}")
 var ssidRegex = regexp.MustCompile(`^ssid="(?P<ssid>.*)"`)
+var passwordRegex = regexp.MustCompile(`^#psk=(?P<password>.*)`)
 var pskRegex = regexp.MustCompile(`^psk=(?P<psk>.*)`)
 
 type WPANetwork struct {
-	SSID string
-	PSK  string
+	SSID     string
+	PSK      string
+	Password string
 }
 
 func (wn *WPANetwork) String() string {
@@ -25,15 +27,17 @@ func (wn *WPANetwork) AsConf() string {
 	return fmt.Sprintf(`
 network={
 	ssid="%v"
+	#psk=%v
 	psk=%v
-}`, wn.SSID, wn.PSK)
+}`, wn.SSID, wn.Password, wn.PSK)
 }
 
 func ParseWPANetwork(s string) *WPANetwork {
 	lines := strings.Split(s, "\n")
 	var (
-		ssid string
-		psk  string
+		ssid     string
+		password string
+		psk      string
 	)
 
 	for _, line := range lines {
@@ -43,6 +47,12 @@ func ParseWPANetwork(s string) *WPANetwork {
 			if len(match) > 0 {
 				m := mapSubexpNames(match, ssidRegex.SubexpNames())
 				ssid = m["ssid"]
+			}
+		} else if strings.Contains(line, "#psk=") {
+			match := passwordRegex.FindStringSubmatch(line)
+			if len(match) > 0 {
+				m := mapSubexpNames(match, pskRegex.SubexpNames())
+				password = m["password"]
 			}
 		} else if strings.Contains(line, "psk=") {
 			match := pskRegex.FindStringSubmatch(line)
@@ -54,11 +64,14 @@ func ParseWPANetwork(s string) *WPANetwork {
 	}
 
 	if len(ssid) > 0 {
-		return &WPANetwork{ssid, psk}
+		return &WPANetwork{
+			SSID:     ssid,
+			Password: password,
+			PSK:      psk,
+		}
 	} else {
 		return nil
 	}
-
 }
 
 func mapSubexpNames(m, n []string) map[string]string {

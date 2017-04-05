@@ -32,11 +32,13 @@ func test(require *require.Assertions, networks []*WPANetwork, err error) {
 	require.Nil(err)
 	require.Equal(2, len(networks))
 
-	require.Equal("ssid-1", networks[0].SSID)
-	require.Equal("pw-1", networks[0].PSK)
+	require.NotNil(networks[0])
+	require.NotNil(networks[1])
 
-	require.Equal("ssid-2", networks[1].SSID)
-	require.Equal("pw-2", networks[1].PSK)
+	require.Equal("ssid-1", networks[0].SSID, networks[0].AsConf())
+	require.Equal("pw-1", networks[0].PSK, networks[0].AsConf())
+	require.Equal("ssid-2", networks[1].SSID, networks[1].AsConf())
+	require.Equal("pw-2", networks[1].PSK, networks[1].AsConf())
 }
 
 func TestWPAConfParse(t *testing.T) {
