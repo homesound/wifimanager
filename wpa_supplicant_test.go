@@ -8,14 +8,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fatih/set"
 	"github.com/gurupras/gocommons"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 )
 
 func createTestConf(require *require.Assertions, wm *WifiManager) string {
 	path := "/tmp/test-start-wpa_supplicant.conf"
 
-	network, err := wm.WpaPassphrase("club210", "winteriscoming")
+	// Load network info from file
+	network, err := ioutil.ReadFile("test/available-ssid.conf")
 	require.Nil(err)
 
 	err = ioutil.WriteFile(path, []byte(network), 0664)
@@ -95,14 +98,15 @@ func TestStartWPASupplicant(t *testing.T) {
 	wg.Wait()
 	require.True(connected, "Failed to connect to wifi")
 
+	err = wm.StopWpaSupplicant("wlan0")
+	require.Nil(err)
 }
 
 func TestStopWPASupplicant(t *testing.T) {
 	require := require.New(t)
 
 	// Get output of pgrep wpa_supplicant before test
-	ret, stdout, stderr := gocommons.Execv1("pgrep", "wpa_supplicant", true)
-	require.Zero(ret)
+	_, stdout, stderr := gocommons.Execv1("pgrep", "wpa_supplicant", true)
 	expected := stdout
 
 	wm, err := NewWifiManager("/etc/wpa_supplicant/wpa_supplicant.conf")
@@ -118,8 +122,7 @@ func TestStopWPASupplicant(t *testing.T) {
 	require.Nil(err)
 
 	time.Sleep(1 * time.Second)
-	ret, stdout, stderr = gocommons.Execv1("pgrep", "wpa_supplicant", true)
-	require.Zero(ret)
+	_, stdout, stderr = gocommons.Execv1("pgrep", "wpa_supplicant", true)
 	require.Equal(expected, stdout)
 	require.Equal(0, len(strings.TrimSpace(stderr)), stderr)
 }
@@ -133,6 +136,14 @@ func TestCurrentSSID(t *testing.T) {
 
 	testConf := createTestConf(require, wm)
 	defer os.Remove(testConf)
+
+	networks, err := ParseWPASupplicantConf(testConf)
+	require.Nil(err)
+	ssidSet := set.NewNonTS()
+	for _, network := range networks {
+		ssidSet.Add(network.SSID)
+	}
+	log.Infoln("Known SSIDS:", ssidSet)
 
 	err = wm.StartWpaSupplicant("wlan0", testConf)
 	require.Nil(err)
@@ -151,8 +162,11 @@ func TestCurrentSSID(t *testing.T) {
 			}
 			time.Sleep(100 * time.Millisecond)
 		}
+		err = wm.StopWpaSupplicant("wlan0")
+		require.Nil(err)
 	}()
 	wg.Wait()
-	require.Equal("club210", ssid)
+	log.Infoln("Current SSID:", ssid)
+	require.True(ssidSet.Has(ssid))
 
 }
