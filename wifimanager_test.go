@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -73,11 +74,18 @@ func TestConnect(t *testing.T) {
 	iface := ifaces[0]
 
 	networks, err := ParseWPASupplicantConf(confFile)
+	log.Infof("Found %d networks", len(networks))
 	require.Nil(err)
 	require.NotNil(networks)
 
+	succeeded := false
 	for _, network := range networks {
-		err = wm.TestConnect(iface, "club210", "winteriscoming")
+		err = wm.TestConnect(iface, network)
+		if err != nil {
+			continue
+		} else {
+			succeeded = true
+		}
 	}
-	require.Nil(err)
+	require.True(succeeded)
 }
