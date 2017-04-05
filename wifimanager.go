@@ -24,6 +24,7 @@ type WifiManager struct {
 	wpaSupplicantCmd *simpleexec.Cmd
 	hostapdCmd       *simpleexec.Cmd
 	dnsmasqCmd       *simpleexec.Cmd
+	dnsmasqConf      string
 	sync.Mutex
 }
 

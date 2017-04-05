@@ -3,6 +3,8 @@ package wifimanager
 import (
 	"bufio"
 	"fmt"
+	"io"
+	"sync"
 
 	"github.com/google/shlex"
 	simpleexec "github.com/gurupras/go-simpleexec"
@@ -30,12 +32,31 @@ func wrapCmd(cmd string, tag string) *simpleexec.Cmd {
 		return nil
 	}
 	stdout, _ := command.StdoutPipe()
-	go func() {
-		scanner := bufio.NewScanner(stdout)
+	stderr, _ := command.StderrPipe()
+
+	mergedChan := make(chan string, 10)
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	stdHandler := func(stdFile io.ReadCloser) {
+		defer wg.Done()
+		scanner := bufio.NewScanner(stdFile)
 		scanner.Split(bufio.ScanLines)
 		for scanner.Scan() {
-			log.Infof("%v: %v", tag, scanner.Text())
+			mergedChan <- scanner.Text()
+		}
+	}
+	go stdHandler(stdout)
+	go stdHandler(stderr)
+	go func() {
+		for line := range mergedChan {
+			log.Infof("%v: %v", tag, line)
 		}
 	}()
+
+	go func() {
+		wg.Wait()
+		close(mergedChan)
+	}()
+
 	return command
 }
