@@ -25,7 +25,7 @@ func runCmd(cmd string) error {
 	return nil
 }
 
-func wrapCmd(cmd string, tag string) *simpleexec.Cmd {
+func WrapCmd(cmd string, tag string) *simpleexec.Cmd {
 	command := simpleexec.ParseCmd(cmd)
 	if command == nil {
 		log.Errorf("Failed to parse command '%v'", cmd)

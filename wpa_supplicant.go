@@ -32,7 +32,7 @@ func (wm *WifiManager) StartWPASupplicant(iface, confPath string) error {
 	}
 
 	cmdlineStr := fmt.Sprintf("/sbin/wpa_supplicant -Dnl80211 -i%v -c%v", iface, confPath)
-	wm.wpaSupplicantCmd = wrapCmd(cmdlineStr, "wpa_supplicant")
+	wm.wpaSupplicantCmd = WrapCmd(cmdlineStr, "wpa_supplicant")
 	wm.wpaSupplicantCmd.Start()
 	log.Infoln("Started wpa_supplicant")
 	return nil

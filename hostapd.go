@@ -22,7 +22,7 @@ func (wm *WifiManager) StartHotspot(iface string) error {
 
 	// Now that the interface is set up, run hostapd and dnsmasq
 	hostapdCmdline := "/usr/sbin/hostapd /etc/hostapd/hostapd.conf"
-	wm.hostapdCmd = wrapCmd(hostapdCmdline, "hostapd")
+	wm.hostapdCmd = WrapCmd(hostapdCmdline, "hostapd")
 	if wm.hostapdCmd == nil {
 		return fmt.Errorf("Failed to create hostapdCmd")
 	}
@@ -40,7 +40,7 @@ dhcp-range=10.11.12.10,10.11.12.20,12h
 	wm.dnsmasqConf = tmpConf.Name()
 
 	dnsmasqCmdline := fmt.Sprintf("/usr/sbin/dnsmasq --no-resolv --bind-interfaces -i %v --dhcp-authoritative --dhcp-range=10.11.12.10,10.11.12.20,12h -d -C %v", iface, tmpConf.Name())
-	wm.dnsmasqCmd = wrapCmd(dnsmasqCmdline, "dnsmasq")
+	wm.dnsmasqCmd = WrapCmd(dnsmasqCmdline, "dnsmasq")
 	if wm.dnsmasqCmd == nil {
 		return fmt.Errorf("Failed to create dnsmasqCmd")
 	}
