@@ -28,7 +28,7 @@ type WifiManager struct {
 	sync.Mutex
 }
 
-func NewWifiManager(wpaConfPath string) (*WifiManager, error) {
+func New(wpaConfPath string) (*WifiManager, error) {
 	if !easyfiles.Exists(wpaConfPath) {
 		return nil, fmt.Errorf("WPA configuration file '%v' does not exist!", wpaConfPath)
 	}
