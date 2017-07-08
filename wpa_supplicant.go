@@ -12,7 +12,7 @@ import (
 )
 
 func WPAPassphrase(ssid, psk string) (string, error) {
-	cmdlineStr := fmt.Sprintf("/usr/bin/wpa_passphrase %v %v", ssid, psk)
+	cmdlineStr := fmt.Sprintf(`/usr/bin/wpa_passphrase "%v" "%v"`, ssid, psk)
 	cmdline, err := shlex.Split(cmdlineStr)
 	if err != nil {
 		return "", fmt.Errorf("Failed to split commandline '%v': %v", cmdlineStr, err)
