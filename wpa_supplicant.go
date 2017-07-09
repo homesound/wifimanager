@@ -1,28 +1,30 @@
 package wifimanager
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/google/shlex"
 	"github.com/gurupras/go-easyfiles"
-	"github.com/gurupras/gocommons"
+	"github.com/gurupras/go-simpleexec"
 	log "github.com/sirupsen/logrus"
 )
 
 func WPAPassphrase(ssid, psk string) (string, error) {
 	cmdlineStr := fmt.Sprintf(`/usr/bin/wpa_passphrase "%v" "%v"`, ssid, psk)
-	cmdline, err := shlex.Split(cmdlineStr)
-	if err != nil {
-		return "", fmt.Errorf("Failed to split commandline '%v': %v", cmdlineStr, err)
+	cmd := simpleexec.ParseCmd(cmdlineStr)
+	stdout := bytes.NewBuffer(nil)
+	stderr := bytes.NewBuffer(nil)
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	if err := cmd.Start(); err != nil {
+		return "", fmt.Errorf("Failed to run command :%v (stderr: %v)", err, stderr.String())
 	}
-	ret, stdout, stderr := gocommons.Execv(cmdline[0], cmdline[1:], true)
-	_ = stdout
-	if ret != 0 {
-		return "", fmt.Errorf("Failed to run command '%v': %v", cmdlineStr, stderr)
+	if err := cmd.Wait(); err != nil {
+		return "", fmt.Errorf("Failed to wait for command :%v (stderr: %v)", err, stderr.String())
 	}
-	return strings.TrimSpace(stdout), nil
+	return strings.TrimSpace(stdout.String()), nil
 }
 
 func (wm *WifiManager) StartWPASupplicant(iface, confPath string) error {
