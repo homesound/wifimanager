@@ -36,6 +36,9 @@ func New(wpaConfPath string) (*WifiManager, error) {
 	wm.WPAConfPath = wpaConfPath
 	wm.NetworkManager = &network_manager.NetworkManager{}
 	wm.KnownSSIDs = set.New()
+	if err := wm.UpdateKnownSSIDs(); err != nil {
+		return nil, err
+	}
 	return wm, nil
 }
 
