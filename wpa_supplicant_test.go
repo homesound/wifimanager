@@ -170,3 +170,23 @@ func TestCurrentSSID(t *testing.T) {
 	require.True(ssidSet.Has(ssid))
 
 }
+
+func TestWPAPassphrase(t *testing.T) {
+	t.Parallel()
+	require := require.New(t)
+
+	expected := `
+network={
+	ssid="test ssid with spaces"
+	#psk="hello 123"
+	psk=1d2d5eb60ac569d0018f4572a324029efac83d4d4a605b6c7077fd1023715f37
+}`
+
+	str, err := WPAPassphrase("test ssid with spaces", "hello 123")
+	require.Nil(err)
+
+	require.Equal(strings.TrimSpace(expected), str, "Did not match")
+
+	// Test with spaces
+
+}
