@@ -94,6 +94,7 @@ func (wm *WifiManager) ScanForKnownSSID() ([]string, error) {
 				for _, entry := range scanResults {
 					scanSet.Add(entry.SSID)
 				}
+				log.Debugf("Scan results=%v", scanResults)
 				intersection := set.Intersection(wm.KnownSSIDs, scanSet)
 				if intersection.Size() > 0 {
 					for _, o := range intersection.List() {
@@ -101,6 +102,7 @@ func (wm *WifiManager) ScanForKnownSSID() ([]string, error) {
 						ret = append(ret, str)
 					}
 				}
+				log.Debugf("Intersection=%v", intersection)
 			}
 			// Now check the results
 			if len(ret) > 0 {
