@@ -9,7 +9,7 @@ import (
 func TestHotspot(t *testing.T) {
 	require := require.New(t)
 
-	wm, err := NewWifiManager("/etc/wpa_supplicant/wpa_supplicant.conf")
+	wm, err := New("/etc/wpa_supplicant/wpa_supplicant.conf")
 	require.Nil(err)
 	require.NotNil(wm)
 

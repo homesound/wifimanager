@@ -36,7 +36,7 @@ func TestWPAConfAppend(t *testing.T) {
 	require.Nil(err)
 	defer os.Remove(f.Name())
 
-	wm, err := NewWifiManager(testConf)
+	wm, err := New(testConf)
 	require.Nil(err)
 	require.NotNil(wm)
 
@@ -70,7 +70,7 @@ func TestWPAConfAppend(t *testing.T) {
 func TestStartWPASupplicant(t *testing.T) {
 	require := require.New(t)
 
-	wm, err := NewWifiManager("/etc/wpa_supplicant/wpa_supplicant.conf")
+	wm, err := New("/etc/wpa_supplicant/wpa_supplicant.conf")
 	require.Nil(err)
 	require.NotNil(wm)
 
@@ -109,7 +109,7 @@ func TestStopWPASupplicant(t *testing.T) {
 	_, stdout, stderr := gocommons.Execv1("pgrep", "wpa_supplicant", true)
 	expected := stdout
 
-	wm, err := NewWifiManager("/etc/wpa_supplicant/wpa_supplicant.conf")
+	wm, err := New("/etc/wpa_supplicant/wpa_supplicant.conf")
 	require.Nil(err)
 	require.NotNil(wm)
 
@@ -130,7 +130,7 @@ func TestStopWPASupplicant(t *testing.T) {
 func TestCurrentSSID(t *testing.T) {
 	require := require.New(t)
 
-	wm, err := NewWifiManager("/etc/wpa_supplicant/wpa_supplicant.conf")
+	wm, err := New("/etc/wpa_supplicant/wpa_supplicant.conf")
 	require.Nil(err)
 	require.NotNil(wm)
 
