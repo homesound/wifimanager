@@ -12,19 +12,32 @@ import (
 )
 
 func WPAPassphrase(ssid, psk string) (string, error) {
-	cmdlineStr := fmt.Sprintf(`/usr/bin/wpa_passphrase "%v" "%v"`, ssid, psk)
-	cmd := simpleexec.ParseCmd(cmdlineStr)
-	stdout := bytes.NewBuffer(nil)
-	stderr := bytes.NewBuffer(nil)
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-	if err := cmd.Start(); err != nil {
-		return "", fmt.Errorf("Failed to run command :%v (stderr: %v)", err, stderr.String())
+	var wpaBlock string
+	if strings.Compare(psk, "") == 0 {
+		// There is no psk..open network
+		// Generate a block for this by-hand
+		wpaBlock = fmt.Sprintf(`
+network={
+	ssid="%v"
+	key_mgmt=NONE
+	priority=-1
+}`, ssid)
+	} else {
+		cmdlineStr := fmt.Sprintf(`/usr/bin/wpa_passphrase "%v" "%v"`, ssid, psk)
+		cmd := simpleexec.ParseCmd(cmdlineStr)
+		stdout := bytes.NewBuffer(nil)
+		stderr := bytes.NewBuffer(nil)
+		cmd.Stdout = stdout
+		cmd.Stderr = stderr
+		if err := cmd.Start(); err != nil {
+			return "", fmt.Errorf("Failed to run command :%v (stderr: %v)", err, stderr.String())
+		}
+		if err := cmd.Wait(); err != nil {
+			return "", fmt.Errorf("Failed to wait for command :%v (stderr: %v)", err, stderr.String())
+		}
+		wpaBlock = stdout.String()
 	}
-	if err := cmd.Wait(); err != nil {
-		return "", fmt.Errorf("Failed to wait for command :%v (stderr: %v)", err, stderr.String())
-	}
-	return strings.TrimSpace(stdout.String()), nil
+	return strings.TrimSpace(wpaBlock), nil
 }
 
 func (wm *WifiManager) StartWPASupplicant(iface, confPath string) error {
