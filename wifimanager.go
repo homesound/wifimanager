@@ -19,7 +19,7 @@ import (
 
 type WifiManager struct {
 	WPAConfPath string
-	*network_manager.NetworkManager
+	*networkmanager.NetworkManager
 	KnownSSIDs       set.Interface
 	wpaSupplicantCmd *simpleexec.Cmd
 	hostapdCmd       *simpleexec.Cmd
@@ -34,7 +34,7 @@ func New(wpaConfPath string) (*WifiManager, error) {
 	}
 	wm := &WifiManager{}
 	wm.WPAConfPath = wpaConfPath
-	wm.NetworkManager = &network_manager.NetworkManager{}
+	wm.NetworkManager = &networkmanager.NetworkManager{}
 	wm.KnownSSIDs = set.New()
 	if err := wm.UpdateKnownSSIDs(); err != nil {
 		return nil, err
