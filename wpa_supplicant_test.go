@@ -1,6 +1,8 @@
 package wifimanager
 
 import (
+	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -9,7 +11,7 @@ import (
 	"time"
 
 	"github.com/fatih/set"
-	"github.com/gurupras/gocommons"
+	simpleexec "github.com/gurupras/go-simpleexec"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 )
@@ -25,6 +27,28 @@ func createTestConf(require *require.Assertions, wm *WifiManager) string {
 	require.Nil(err)
 
 	return path
+}
+
+func getWifiInterface(wm *WifiManager) (string, error) {
+	ifaces, err := wm.GetWifiInterfaces()
+	if err != nil {
+		return "", err
+	}
+	if len(ifaces) == 0 {
+		return "", fmt.Errorf("No wifi interface found!")
+	}
+	iface := ifaces[0]
+	return iface, nil
+}
+
+func pgrep(str string) (string, error) {
+	cmd := simpleexec.ParseCmd(fmt.Sprintf("pgrep %v", str))
+	buf := bytes.NewBuffer(nil)
+	cmd.Stdout = buf
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 func TestWPAConfAppend(t *testing.T) {
@@ -74,10 +98,13 @@ func TestStartWPASupplicant(t *testing.T) {
 	require.Nil(err)
 	require.NotNil(wm)
 
+	iface, err := getWifiInterface(wm)
+	require.Nil(err)
+
 	testConf := createTestConf(require, wm)
 	defer os.Remove(testConf)
 
-	err = wm.StartWPASupplicant("wlan0", testConf)
+	err = wm.StartWPASupplicant(iface, testConf)
 	require.Nil(err)
 
 	connected := false
@@ -98,7 +125,7 @@ func TestStartWPASupplicant(t *testing.T) {
 	wg.Wait()
 	require.True(connected, "Failed to connect to wifi")
 
-	err = wm.StopWPASupplicant("wlan0")
+	err = wm.StopWPASupplicant(iface)
 	require.Nil(err)
 }
 
@@ -106,25 +133,29 @@ func TestStopWPASupplicant(t *testing.T) {
 	require := require.New(t)
 
 	// Get output of pgrep wpa_supplicant before test
-	_, stdout, stderr := gocommons.Execv1("pgrep", "wpa_supplicant", true)
+	stdout, err := pgrep("wpa_supplicant")
+	require.Nil(err)
 	expected := stdout
 
 	wm, err := New("/etc/wpa_supplicant/wpa_supplicant.conf")
 	require.Nil(err)
 	require.NotNil(wm)
 
+	iface, err := getWifiInterface(wm)
+	require.Nil(err)
+
 	testConf := createTestConf(require, wm)
 	defer os.Remove(testConf)
 
-	err = wm.StartWPASupplicant("wlan0", testConf)
+	err = wm.StartWPASupplicant(iface, testConf)
 	require.Nil(err)
-	err = wm.StopWPASupplicant("wlan0")
+	err = wm.StopWPASupplicant(iface)
 	require.Nil(err)
 
 	time.Sleep(1 * time.Second)
-	_, stdout, stderr = gocommons.Execv1("pgrep", "wpa_supplicant", true)
+	stdout, err = pgrep("wpa_supplicant")
+	require.Nil(err)
 	require.Equal(expected, stdout)
-	require.Equal(0, len(strings.TrimSpace(stderr)), stderr)
 }
 
 func TestCurrentSSID(t *testing.T) {
@@ -133,6 +164,9 @@ func TestCurrentSSID(t *testing.T) {
 	wm, err := New("/etc/wpa_supplicant/wpa_supplicant.conf")
 	require.Nil(err)
 	require.NotNil(wm)
+
+	iface, err := getWifiInterface(wm)
+	require.Nil(err)
 
 	testConf := createTestConf(require, wm)
 	defer os.Remove(testConf)
@@ -145,7 +179,7 @@ func TestCurrentSSID(t *testing.T) {
 	}
 	log.Infoln("Known SSIDS:", ssidSet)
 
-	err = wm.StartWPASupplicant("wlan0", testConf)
+	err = wm.StartWPASupplicant(iface, testConf)
 	require.Nil(err)
 
 	ssid := ""
@@ -155,14 +189,14 @@ func TestCurrentSSID(t *testing.T) {
 		defer wg.Done()
 		start := time.Now()
 		for time.Now().Sub(start) < 10*time.Second {
-			ssid, err = wm.CurrentSSID("wlan0")
+			ssid, err = wm.CurrentSSID(iface)
 			require.Nil(err)
 			if len(ssid) > 0 {
 				break
 			}
 			time.Sleep(100 * time.Millisecond)
 		}
-		err = wm.StopWPASupplicant("wlan0")
+		err = wm.StopWPASupplicant(iface)
 		require.Nil(err)
 	}()
 	wg.Wait()
