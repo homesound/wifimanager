@@ -2,27 +2,16 @@ package wifimanager
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"sync"
 
-	"github.com/google/shlex"
 	simpleexec "github.com/gurupras/go-simpleexec"
-	"github.com/gurupras/gocommons"
 	log "github.com/sirupsen/logrus"
 )
 
 func runCmd(cmd string) error {
-	cmdline, err := shlex.Split(cmd)
-	if err != nil {
-		return fmt.Errorf("Failed to run command '%v': %v", cmd, err)
-	}
-	ret, stdout, stderr := gocommons.Execv(cmdline[0], cmdline[1:], true)
-	_ = stdout
-	if ret != 0 {
-		return fmt.Errorf("Failed to run command '%v': %v", cmd, stderr)
-	}
-	return nil
+	_cmd := simpleexec.ParseCmd(cmd)
+	return _cmd.Run()
 }
 
 func WrapCmd(cmd string, tag string) *simpleexec.Cmd {

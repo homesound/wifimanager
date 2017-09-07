@@ -12,7 +12,6 @@ import (
 	"github.com/fatih/set"
 	"github.com/gurupras/go-easyfiles"
 	simpleexec "github.com/gurupras/go-simpleexec"
-	"github.com/gurupras/gocommons"
 	"github.com/homesound/go-networkmanager"
 	log "github.com/sirupsen/logrus"
 )
@@ -43,11 +42,13 @@ func New(wpaConfPath string) (*WifiManager, error) {
 }
 
 func (wm *WifiManager) CurrentSSID(iface string) (string, error) {
-	ret, stdout, stderr := gocommons.Execv1("/sbin/iwgetid", fmt.Sprintf("-r %v", iface), true)
-	if ret != 0 {
-		return "", fmt.Errorf("Failed to run iwgetid -r: %v", stderr)
+	cmd := simpleexec.ParseCmd(fmt.Sprintf("/sbin/iwgetid -r %v", iface))
+	buf := bytes.NewBuffer(nil)
+	cmd.Stdout = buf
+	if err := cmd.Run(); err != nil {
+		return "", err
 	}
-	return strings.TrimSpace(stdout), nil
+	return strings.TrimSpace(buf.String()), nil
 }
 
 func (wm *WifiManager) ResetWifiInterface(iface string) error {
